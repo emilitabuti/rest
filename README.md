@@ -1,12 +1,12 @@
-# Leilão Distribuído com REST/RESTful
+# Leilão Distribuído com REST
 
-Projeto prático de **Sistemas Distribuídos e Computação Paralela** (PUC-SP, 2º sem. 2026, Prof. Carlos Paes).
-**Tecnologia sorteada (Grupo 7): REST / RESTful.**
+Projeto de **Sistemas Distribuídos e Computação Paralela** (PUC-SP, 2º semestre de 2026, Prof. Carlos Paes).
+**Tecnologia sorteada para o Grupo 7: REST / RESTful.**
 
 **Integrantes:** Caroline Guimarães Campos, Emili Vieira Tabuti, Gustavo Macedo Costa, Isabela Groke Gomes.
 
-> Status: **Entrega 1** (roteiro preliminar + primeira comunicação entre dois processos).
-> Os itens marcados com 🔲 serão concluídos no Laboratório 2 (06/11).
+> **Situação:** Entrega 1 (roteiro preliminar e primeira comunicação entre dois processos).
+> O que está marcado com [ ] ainda vamos fazer no Laboratório 2 (06/11).
 
 ---
 
@@ -14,49 +14,54 @@ Projeto prático de **Sistemas Distribuídos e Computação Paralela** (PUC-SP, 
 
 ### 1.1 O que é REST
 
-REST (*Representational State Transfer*) **não é um protocolo nem uma biblioteca**: é um **estilo arquitetural** definido por Roy Fielding ([tese de doutorado, 2000](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)). Na prática, é usado sobre HTTP: o servidor expõe **recursos** identificados por URLs e o cliente os manipula por meio de **representações** (aqui, JSON) trocadas com os **verbos HTTP**.
+REST (*Representational State Transfer*) **não é um protocolo nem uma biblioteca**. É um **jeito de organizar** a comunicação entre sistemas, ou seja, um estilo de arquitetura. Ele foi proposto por Roy Fielding na [tese de doutorado dele, em 2000](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm).
 
-No espectro dos paradigmas da disciplina, REST é **Web Service**: comunicação **síncrona**, **direta** (cliente conhece o endereço do servidor) e por **requisição/resposta**.
+Na prática, o REST usa o HTTP (o mesmo da web). O servidor mostra **recursos** (coisas como "leilão" ou "lance"), cada um com sua URL. O cliente usa os **verbos HTTP** (GET, POST...) para ler ou criar esses recursos, trocando dados em JSON.
 
-### 1.2 Os princípios (restrições) de REST
+Dentro do que vimos na disciplina, o REST é um **Web Service**. A comunicação é **síncrona** (o cliente manda e espera a resposta), **direta** (o cliente conhece o endereço do servidor) e do tipo **requisição/resposta**.
 
-| Restrição | Significado | Onde aparece no leilão |
+### 1.2 Os princípios do REST
+
+| Princípio | O que quer dizer | Como aparece no nosso leilão |
 |---|---|---|
-| Cliente/servidor | Separação de responsabilidades; evoluem independentemente | Participante (CLI) e Leiloeiro (API) só compartilham o contrato HTTP/JSON |
-| **Stateless** (sem estado de sessão) | Cada requisição carrega tudo o que o servidor precisa; o servidor não guarda "conversa" com o cliente | O Participante se identifica em **cada** lance; não há login/sessão. O estado do *leilão* existe, o da *sessão* não |
-| Cacheável | Respostas declaram se podem ser reaproveitadas | `GET` seguro e idempotente (candidato a cache/ETag, ver extras) |
-| **Interface uniforme** | Recursos por URL, verbos com semântica fixa, representações padronizadas, mensagens autodescritivas | `/leiloes/{id}`, `/leiloes/{id}/lances`; códigos de status com significado |
-| Sistema em camadas | Cliente não sabe se fala com o servidor final ou com proxy/balanceador | Permite colocar um proxy/Docker na frente sem mudar o cliente |
-| Código sob demanda (opcional) | Servidor pode enviar código executável | Não usado |
+| Cliente/servidor | Cada lado cuida do seu trabalho e os dois podem mudar sem afetar o outro | O Participante e o Leiloeiro só combinam o formato das requisições e do JSON |
+| **Sem estado (stateless)** | Cada requisição leva tudo o que o servidor precisa. O servidor não guarda "sessão" do cliente | O participante manda o nome em cada lance. Não existe login |
+| Cache | As respostas podem dizer se dá para reaproveitar | O `GET` não altera nada, então poderia usar cache |
+| **Interface uniforme** | URLs para recursos, verbos com significado fixo e códigos de status padronizados | `/leiloes/1` e `/leiloes/1/lances`, com `201`, `409` etc. |
+| Camadas | O cliente não sabe se está falando direto com o servidor ou com um proxy no meio | Dá para colocar um proxy ou Docker na frente sem mudar o cliente |
+| Código sob demanda (opcional) | O servidor pode mandar código para o cliente executar | Não usamos |
 
-Pontos de projeto que importam para este trabalho:
+Coisas importantes de design que vamos seguir:
 
-- **Substantivos nas URLs, verbos no método.** `POST /leiloes/1/lances` (e não `/darLance`). Um lance é um *recurso* que passa a existir.
-- **Semântica dos verbos:** `GET` é *seguro* e *idempotente*; `POST` **não** é idempotente (repetir um POST cria outro lance); `PUT`/`DELETE` são idempotentes.
-- **Códigos de status fazem parte do contrato:** `201 Created` (lance aceito), `409 Conflict` (conflito com o estado atual: lance baixo ou leilão encerrado), `404`, `422` (corpo inválido).
-- **[Modelo de maturidade de Richardson](https://martinfowler.com/articles/richardsonMaturityModel.html):** nível 0 (RPC sobre HTTP) → 1 (recursos) → 2 (verbos + status) → 3 (HATEOAS, links na resposta). A POC mira o **nível 2**, que é o que a maioria das APIs "REST" na prática entrega.
+- **Substantivo na URL, ação no verbo.** Usamos `POST /leiloes/1/lances` ("cria um lance") e não `/darLance`.
+- **Verbos:** `GET` só lê e pode ser repetido sem problema (idempotente). `POST` **não** é idempotente: se repetir, cria outro lance. `PUT` e `DELETE` são idempotentes.
+- **Os códigos de status fazem parte do contrato:** `201 Created` (lance aceito), `409 Conflict` (lance recusado porque conflita com o estado atual), `404` (não achou), `422` (JSON inválido).
+- **[Modelo de maturidade de Richardson](https://martinfowler.com/articles/richardsonMaturityModel.html):** nível 0 (só HTTP como túnel), 1 (recursos), 2 (verbos e status corretos), 3 (links nas respostas, o HATEOAS). A nossa POC fica no **nível 2**, que é o que a maioria das APIs "REST" usa de verdade.
 
-### 1.3 Como REST resolve o cenário do leilão (e sua limitação central)
+### 1.3 Como o REST resolve o leilão, e o problema dele
 
-O cenário combina **requisição/resposta** e **notificação**:
+O leilão tem dois tipos de interação:
 
-- *Dar lance e saber se foi aceito* → encaixa perfeitamente em REST (`POST` + status).
-- *Ficar sabendo dos lances dos outros* → **REST não tem push**: o servidor nunca inicia a comunicação. O Participante precisa fazer **polling** (consultas periódicas).
+- **Dar um lance e saber se foi aceito:** combina muito bem com REST (`POST` e o status da resposta).
+- **Ficar sabendo dos lances dos outros:** aqui o REST tem uma limitação. **O servidor nunca começa a conversa**, então não existe "push". O participante precisa **perguntar de tempos em tempos** (isso se chama *polling*).
 
-Esta é a diferença que destacaremos no seminário frente a WebSocket, gRPC (streaming) e MOM (pub/sub): em REST o **cliente puxa**, e isso custa em **latência de notificação** (até 1 intervalo de polling) e em **requisições desperdiçadas**. Mitigações: *polling incremental* (`?apos=seq`, adotado), `ETag`/`304 Not Modified`, *long polling*; e fora do REST puro: SSE, WebSocket, webhooks.
+Esse é o ponto que vamos destacar no seminário em comparação com WebSocket, gRPC (streaming) e MOM (publish/subscribe). No REST, **quem puxa a informação é o cliente**. O custo disso é que a notícia pode demorar até um intervalo de polling para chegar, e muitas perguntas voltam sem novidade.
 
-### 1.4 Vantagens, desvantagens e casos de uso
+Formas de melhorar: pedir só os lances novos (`?apos=seq`, que vamos usar), `ETag`/`304 Not Modified`, *long polling*. Fora do REST puro existem SSE, WebSocket e webhooks.
+
+### 1.4 Vantagens, desvantagens e onde é usado
 
 | Vantagens | Desvantagens |
 |---|---|
-| Simples, universal (qualquer linguagem com HTTP), fácil de depurar (`curl`, navegador) | Sem push nativo → polling |
-| Baixo acoplamento; contrato por URL/JSON; evolui por versionamento | Verboso (JSON textual, HTTP/1.1 por requisição) vs. gRPC/Protobuf |
-| Stateless → escala horizontalmente atrás de balanceador | Sem contrato formal forte por padrão (OpenAPI resolve parcialmente) |
-| Aproveita infraestrutura HTTP (cache, proxy, TLS, gateways) | "Quem foi primeiro" e concorrência ficam a cargo do servidor |
+| Simples e funciona em qualquer linguagem que fale HTTP | Não tem push, só polling |
+| Fácil de testar (`curl`, navegador) | JSON em texto é mais pesado que o Protocol Buffers do gRPC |
+| Pouco acoplamento: o contrato é só URL + JSON | O contrato não é tão rígido quanto um WSDL ou um `.proto` (o OpenAPI ajuda) |
+| Sem estado, então é fácil escalar com vários servidores | Quem decide a ordem dos lances e a concorrência é o servidor |
+| Aproveita o que já existe do HTTP (cache, proxy, TLS) | |
 
-**Casos de uso reais:** APIs públicas do [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api), [Google Maps](https://developers.google.com/maps/documentation) e a maioria das APIs de e-commerce/pagamento. 🔲 *Conferir cada exemplo na documentação oficial antes do seminário (regra de verificação da Seção 9 da especificação).*
+**Quem usa:** as APIs públicas do [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api) e [Google Maps](https://developers.google.com/maps/documentation), além de muitas APIs de e-commerce e pagamento. [ ] *Conferir cada exemplo na documentação oficial antes do seminário (regra da Seção 9 do enunciado).*
 
-**Ferramentas:** [FastAPI](https://fastapi.tiangolo.com/) (escolhido), Flask, Spring Boot, Express; [OpenAPI](https://spec.openapis.org/oas/latest.html)/Swagger; Postman/curl.
+**Ferramentas:** [FastAPI](https://fastapi.tiangolo.com/) (a que escolhemos), Flask, Spring Boot, Express, [OpenAPI](https://spec.openapis.org/oas/latest.html)/Swagger, Postman e curl.
 
 ---
 
@@ -67,11 +72,11 @@ Esta é a diferença que destacaremos no seminário frente a WebSocket, gRPC (st
 ```mermaid
 flowchart LR
     subgraph M1["Máquina A"]
-        L["Leiloeiro<br/>FastAPI + uvicorn<br/>:8000"]
+        L["Leiloeiro<br/>FastAPI + uvicorn<br/>porta 8000"]
     end
     subgraph M2["Máquina B"]
-        P1["Participante 1<br/>cliente CLI"]
-        P2["Participante 2<br/>cliente CLI"]
+        P1["Participante 1<br/>cliente de terminal"]
+        P2["Participante 2<br/>cliente de terminal"]
     end
     P1 -- "POST /leiloes/1/lances" --> L
     P2 -- "POST /leiloes/1/lances" --> L
@@ -79,29 +84,29 @@ flowchart LR
     P2 -. "GET /leiloes/1/lances?apos=N (polling)" .-> L
 ```
 
-- **Quem inicia a comunicação:** sempre o Participante (cliente). O Leiloeiro nunca fala primeiro.
-- **Leiloeiro** ([leiloeiro/main.py](leiloeiro/main.py)): guarda o leilão e a lista de lances **em memória**; valida e aplica cada lance dentro de um `Lock`.
-- **Participante** ([participante/cliente.py](participante/cliente.py)): CLI com `consultar`, `lance` e `acompanhar` (polling).
-- Linguagem: Python 3.12; transporte: HTTP/1.1; formato: JSON.
+- **Quem começa a conversa:** sempre o Participante (o cliente). O Leiloeiro nunca fala primeiro.
+- **Leiloeiro** ([leiloeiro/main.py](leiloeiro/main.py)): guarda o leilão e os lances **na memória** e usa um `Lock` para tratar um lance de cada vez.
+- **Participante** ([participante/cliente.py](participante/cliente.py)): programa de terminal com os comandos `consultar`, `lance` e `acompanhar` (polling).
+- Linguagem: Python 3.12. Transporte: HTTP. Formato dos dados: JSON.
 
-### 2.2 Decisões de design (e o porquê)
+### 2.2 Decisões que tomamos (e por quê)
 
-1. **Encerramento calculado sob demanda.** Não há *timer*: o estado é `ENCERRADO` se `agora >= encerra_em`. Evita corrida entre timer e lance e simplifica o servidor.
-2. **Relógio do servidor é a autoridade.** Só o Leiloeiro decide se o leilão fechou e quando cada lance chegou (`recebido_em`). Participantes não enviam horário. (Gancho da aula de sincronização de relógios.)
-3. **Ordem total por `seq`.** Cada lance aceito recebe um número sequencial; o polling usa `?apos=seq` e nunca perde nem repete lances.
-4. **Lance recusado = `409 Conflict`**, não erro do cliente (`400`): o pedido é válido, mas conflita com o estado atual. O corpo explica o motivo.
-5. **Concorrência:** a verificação "valor > maior atual" e a gravação ocorrem sob o mesmo `Lock`; de dois lances simultâneos, o **primeiro a obter o lock** vence e o outro recebe `409`. (Será medido em RE3.)
-6. **Um item/leilão por execução** (parâmetros na linha de comando), mas o recurso já é `/leiloes/{id}`, então vários leilões é uma extensão natural.
+1. **O fim do leilão é calculado na hora.** Não tem timer: se a hora atual passou da hora de encerramento, o leilão está `ENCERRADO`. Isso evita bug de timer disputando com um lance.
+2. **Vale o relógio do servidor.** Só o Leiloeiro decide se o leilão acabou e a que horas cada lance chegou (`recebido_em`). O participante não manda horário. Isso liga com a aula de sincronização de relógios.
+3. **Cada lance aceito ganha um número de ordem (`seq`).** O polling usa `?apos=seq`, então o participante não perde nem repete lances.
+4. **Lance recusado volta como `409 Conflict`** e não `400`. O pedido está escrito certo, mas conflita com o estado atual do leilão. O corpo da resposta explica o motivo.
+5. **Concorrência:** conferir "o valor é maior que o atual?" e salvar o lance acontecem juntos dentro de um `Lock`. Se dois lances chegam ao mesmo tempo, **o primeiro que pegar o lock ganha** e o outro recebe `409`. Vamos medir isso no RE3.
+6. **Um leilão por execução** (configurado por parâmetros), mas a URL já é `/leiloes/{id}`, então dá para ter vários leilões depois.
 
-### 2.3 Contrato da API e formato das mensagens (RF6)
+### 2.3 API e formato das mensagens (RF6)
 
 | Operação | Requisição | Resposta |
 |---|---|---|
-| Consultar leilão (RF2) | `GET /leiloes/1` | `200` estado |
-| Dar lance (RF3) | `POST /leiloes/1/lances` | `201` aceito / `409` recusado |
-| Novos lances (RF4, polling) | `GET /leiloes/1/lances?apos=N` | `200` lista incremental |
+| Consultar o leilão (RF2) | `GET /leiloes/1` | `200` com o estado |
+| Dar lance (RF3) | `POST /leiloes/1/lances` | `201` aceito ou `409` recusado |
+| Ver lances novos (RF4, polling) | `GET /leiloes/1/lances?apos=N` | `200` com a lista de novos |
 
-**Consultar leilão** → `200 OK`
+**Consultar o leilão** devolve `200 OK`:
 ```json
 {
   "id": 1,
@@ -114,17 +119,17 @@ flowchart LR
   "vencedor": null
 }
 ```
-`vencedor` só é preenchido quando `status` é `ENCERRADO` (RF5).
+O campo `vencedor` só vem preenchido quando o `status` é `ENCERRADO` (RF5).
 
-**Dar lance** — corpo da requisição:
+**Dar lance.** O corpo da requisição é:
 ```json
 {"participante": "Ana", "valor": 150.0}
 ```
-Aceito → `201 Created` + cabeçalho `Location: /leiloes/1/lances/1`
+Se aceito, volta `201 Created` com o cabeçalho `Location: /leiloes/1/lances/1`:
 ```json
 {"aceito": true, "lance": {"seq": 1, "participante": "Ana", "valor": 150.0, "recebido_em": "..."}}
 ```
-Recusado → `409 Conflict`
+Se recusado, volta `409 Conflict`:
 ```json
 {"detail": {"aceito": false, "motivo": "LANCE_INSUFICIENTE", "maior_lance_atual": 150.0, "lance_minimo": 100.0}}
 ```
@@ -132,33 +137,33 @@ Recusado → `409 Conflict`
 {"detail": {"aceito": false, "motivo": "LEILAO_ENCERRADO"}}
 ```
 
-**Novos lances** → `200 OK`
+**Ver lances novos** devolve `200 OK`:
 ```json
 {"lances": [{"seq": 3, "participante": "Ana", "valor": 250.0, "recebido_em": "..."}], "status": "ABERTO"}
 ```
 
-A documentação interativa (OpenAPI) é gerada automaticamente em `http://<leiloeiro>:8000/docs`.
+O FastAPI gera sozinho uma documentação interativa (OpenAPI) em `http://<ip-do-leiloeiro>:8000/docs`.
 
-### 2.4 Mapa de requisitos
+### 2.4 Requisitos do enunciado
 
 | Requisito | Situação | Como |
 |---|---|---|
-| RF1 1 Leiloeiro + ≥2 Participantes, processos distintos | ✅ Entrega 1 (testado com 2 processos) | Servidor + CLI executados separadamente |
-| RF2 Estado do leilão | ✅ | `GET /leiloes/1` |
-| RF3 Lance aceito/recusado | ✅ | `POST` → `201`/`409` |
-| RF4 Notificação | 🟡 `acompanhar` implementado, falta validar com ≥2 participantes | Polling com `?apos=` |
-| RF5 Encerramento e vencedor | ✅ | Campo `vencedor` + recusa com `LEILAO_ENCERRADO` |
-| RF6 Formato das mensagens | ✅ | Seção 2.3 |
-| RE1 Duas máquinas | 🔲 Lab 2 (testar com `--url http://IP:8000`) | |
-| RE2 Experimento de falha | 🔲 Lab 2 | Seção 5 |
-| RE3 Experimento de concorrência | 🔲 Lab 2 | Seção 5 |
-| RE4 Repositório + README | ✅ (README será completado) | |
+| RF1: 1 Leiloeiro e 2 ou mais Participantes em processos separados | OK (testamos com 2 processos) | Servidor e cliente rodam em terminais diferentes |
+| RF2: ver o estado do leilão | OK | `GET /leiloes/1` |
+| RF3: dar lance (aceito/recusado) | OK | `POST` com `201` ou `409` |
+| RF4: notificação | Em andamento: o `acompanhar` existe, falta testar com 2 ou mais participantes | Polling com `?apos=` |
+| RF5: encerramento e vencedor | OK | Campo `vencedor` e recusa com `LEILAO_ENCERRADO` |
+| RF6: formato das mensagens | OK | Seção 2.3 |
+| RE1: rodar em 2 máquinas | [ ] Lab 2 | Usar `--url http://IP:8000` |
+| RE2: experimento de falha | [ ] Lab 2 | Seção 5 |
+| RE3: experimento de concorrência | [ ] Lab 2 | Seção 5 |
+| RE4: repositório com README | OK (README ainda vai ser completado) | |
 
 ---
 
 ## 3. Primeira comunicação entre dois processos
 
-Já funciona: um Participante envia um lance, o Leiloeiro responde **aceito/recusado**. Saída real do teste (leilão de 15 s, mínimo 100):
+Já funciona: um Participante manda um lance e o Leiloeiro responde se foi **aceito ou recusado**. Esta é a saída do nosso teste (leilão de 15 segundos, lance mínimo 100):
 
 ```
 $ python participante/cliente.py lance Ana 50
@@ -169,7 +174,7 @@ $ python participante/cliente.py lance Bia 150
 RECUSADO: {'aceito': False, 'motivo': 'LANCE_INSUFICIENTE', 'maior_lance_atual': 150.0, ...}
 $ python participante/cliente.py lance Bia 200
 ACEITO: {'seq': 2, 'participante': 'Bia', 'valor': 200.0, ...}
-(após o encerramento)
+(depois que o leilão acabou)
 $ python participante/cliente.py lance Ana 999
 RECUSADO: {'aceito': False, 'motivo': 'LEILAO_ENCERRADO'}
 $ python participante/cliente.py consultar
@@ -182,12 +187,12 @@ $ python participante/cliente.py consultar
 
 ## 4. Como executar
 
-Requisitos: Python 3.10+.
+Precisa de Python 3.10 ou mais novo.
 
 ```bash
-git clone <URL-DO-REPOSITORIO> && cd <repositorio>
+git clone https://github.com/emilitabuti/rest.git && cd rest
 python3 -m venv .venv
-source .venv/bin/activate            # Windows: .venv\Scripts\activate
+source .venv/bin/activate            # no Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -195,58 +200,59 @@ pip install -r requirements.txt
 ```bash
 python leiloeiro/main.py --item "Notebook usado" --minimo 100 --duracao 120 --port 8000
 ```
-Descubra o IP da máquina (`hostname -I`) e libere a porta 8000 no firewall, se necessário.
+Veja o IP da máquina com `hostname -I`. Se precisar, libere a porta 8000 no firewall.
 
-**Máquina B (Participantes, um terminal cada):**
+**Máquina B (Participantes, um terminal para cada):**
 ```bash
 python participante/cliente.py --url http://IP_DA_MAQUINA_A:8000 acompanhar
 python participante/cliente.py --url http://IP_DA_MAQUINA_A:8000 consultar
 python participante/cliente.py --url http://IP_DA_MAQUINA_A:8000 lance Ana 150
 ```
-Sem `--url`, o padrão é `http://localhost:8000`.
+Se não colocar `--url`, ele usa `http://localhost:8000`.
 
-Teste rápido sem o cliente: `curl -X POST localhost:8000/leiloes/1/lances -H 'Content-Type: application/json' -d '{"participante":"Ana","valor":150}'`
-
----
-
-## 5. Experimentos (Laboratório 2) 🔲
-
-**RE2 – Falha.** Plano: derrubar o Leiloeiro (Ctrl+C) durante o leilão e observar os Participantes; reiniciar.
-Hipóteses a verificar: (a) `acompanhar` imprime "Leiloeiro indisponível" e continua tentando (o cliente é tolerante, o servidor não); (b) como o estado está **em memória**, ao reiniciar o leilão **recomeça do zero e o maior lance é perdido**. Decisão em aberto: persistir em arquivo JSON para preservar o estado.
-Resultado observado: _a preencher_.
-
-**RE3 – Concorrência.** Plano: dois Participantes disparam o mesmo valor ao mesmo tempo (ex.: dois `curl` em paralelo ou script com threads). Hipótese: exatamente um recebe `201` e o outro `409`, pela serialização do `Lock`; "quem foi primeiro" é decidido pelo servidor, não pelo relógio do cliente.
-Resultado observado: _a preencher_.
+Também dá para testar sem o cliente, só com o curl:
+`curl -X POST localhost:8000/leiloes/1/lances -H 'Content-Type: application/json' -d '{"participante":"Ana","valor":150}'`
 
 ---
 
-## 6. Divisão de tarefas (proposta, ajustar no grupo)
+## 5. Experimentos (Laboratório 2) [ ]
+
+**RE2: falha.** Vamos derrubar o Leiloeiro (Ctrl+C) no meio do leilão, ver o que acontece com os participantes e depois ligar de novo.
+O que a gente espera: (a) o `acompanhar` mostra "Leiloeiro indisponível" e continua tentando, ou seja, o cliente aguenta a queda; (b) como os dados ficam **só na memória**, ao reiniciar o leilão **começa do zero e o maior lance se perde**. Ainda precisamos decidir se vamos salvar o estado em um arquivo JSON para não perder.
+Resultado que observamos: _a preencher_.
+
+**RE3: concorrência.** Dois participantes dão o mesmo lance ao mesmo tempo (dois `curl` em paralelo ou um script com threads). A gente espera que exatamente um receba `201` e o outro `409`, porque o `Lock` faz um de cada vez. Quem foi primeiro é decidido pelo servidor, não pelo relógio do cliente.
+Resultado que observamos: _a preencher_.
+
+---
+
+## 6. Divisão de tarefas (proposta, o grupo pode ajustar)
 
 | Integrante | Responsabilidade principal | Entregas |
 |---|---|---|
-| Emili Vieira Tabuti | **Leiloeiro** (API FastAPI, regras de lance, encerramento) | `leiloeiro/`, persistência opcional |
-| Isabela Groke Gomes | **Participante** (CLI, polling, tratamento de falha) | `participante/`, reconexão |
-| Gustavo Macedo Costa | **Experimentos RE2/RE3** + testes em 2 máquinas (RE1) + vídeo plano B | Seção 5, script de concorrência |
-| Caroline Guimarães Campos | **Estudo e slides** (partes 1, 2 e 7), diagrama, `IA.md` | Seção 1, slides |
+| Emili Vieira Tabuti | **Leiloeiro** (API, regras de lance, encerramento) | `leiloeiro/`, persistência (se decidirmos fazer) |
+| Isabela Groke Gomes | **Participante** (cliente de terminal, polling, tratamento de falha) | `participante/`, reconexão |
+| Gustavo Macedo Costa | **Experimentos RE2 e RE3**, teste em 2 máquinas (RE1) e vídeo de plano B | Seção 5, script de concorrência |
+| Caroline Guimarães Campos | **Estudo e slides** (partes 1, 2 e 7), diagrama e `IA.md` | Seção 1, slides |
 
-Todos devem conseguir explicar qualquer parte do código (regra da Seção 9): fazer **revisão cruzada** do código uns dos outros antes do seminário.
+Todo mundo precisa saber explicar qualquer parte do código (regra da Seção 9 do enunciado). Por isso vamos **revisar o código uns dos outros** antes do seminário.
 
 ## 7. Roteiro até o seminário
 
-| Quando | Meta |
+| Quando | O que fazer |
 |---|---|
 | Lab 1 (30/10) | Estudo, design, primeira comunicação, repositório e este README (**Entrega 1**) |
-| Lab 2, 0–45 min | Validar RF4 com 2+ participantes; testar em 2 máquinas (RE1); decidir sobre persistência |
-| Lab 2, 45–60 min | Rodar e documentar RE2 e RE3; gravar vídeo plano B |
-| Lab 2, 60–90 min | Completar README (seção 5), `IA.md` e slides (**Entrega 2**) |
-| 13/11 | Seminário: 10 min + 2 min de perguntas, todos participam |
+| Lab 2, 0 a 45 min | Testar o RF4 com 2 ou mais participantes, rodar em 2 máquinas (RE1) e decidir sobre salvar o estado |
+| Lab 2, 45 a 60 min | Fazer e anotar o RE2 e o RE3, gravar o vídeo de plano B |
+| Lab 2, 60 a 90 min | Completar o README (seção 5), o `IA.md` e os slides (**Entrega 2**) |
+| 13/11 | Seminário: 10 min de apresentação e 2 min de perguntas, todo mundo apresenta |
 
-Extras opcionais se sobrar tempo: medir latência entre lance e notificação (depende do intervalo de polling), reconexão automática, Docker, interface web.
+Extras, se sobrar tempo: medir o tempo entre o lance e a notificação (depende do intervalo de polling), reconexão automática, Docker e interface web.
 
 ## 8. Referências
 
 - Fielding, R. T. [*Architectural Styles and the Design of Network-based Software Architectures*](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm) (2000), cap. 5: REST.
-- [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110) (métodos, idempotência, códigos de status).
+- [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110) (métodos, idempotência e códigos de status).
 - Fowler, M. [Richardson Maturity Model](https://martinfowler.com/articles/richardsonMaturityModel.html).
 - [FastAPI](https://fastapi.tiangolo.com/) e [OpenAPI Specification](https://spec.openapis.org/oas/latest.html).
 - Exemplos de APIs REST: [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api), [Google Maps](https://developers.google.com/maps/documentation).
@@ -256,9 +262,9 @@ Extras opcionais se sobrar tempo: medir latência entre lance e notificação (d
 
 ```
 leiloeiro/main.py        servidor REST
-participante/cliente.py  cliente CLI
-requirements.txt
+participante/cliente.py  cliente de terminal
+requirements.txt         dependências
 IA.md                    registro do uso de IA
-README.md
+README.md                este arquivo
 ```
-Slides (.pptx/.pdf) serão adicionados em `slides/`.
+Os slides (.pptx ou .pdf) vão ficar na pasta `slides/`.
