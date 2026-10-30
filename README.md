@@ -225,8 +225,8 @@ Resultado observado: _a preencher_.
 | Integrante | Responsabilidade principal | Entregas |
 |---|---|---|
 | Emili Vieira Tabuti | **Leiloeiro** (API FastAPI, regras de lance, encerramento) | `leiloeiro/`, persistência opcional |
-| Gustavo Macedo Costa | **Participante** (CLI, polling, tratamento de falha) | `participante/`, reconexão |
-| Isabela Groke Gomes | **Experimentos RE2/RE3** + testes em 2 máquinas (RE1) + vídeo plano B | Seção 5, script de concorrência |
+| Isabela Groke Gomes | **Participante** (CLI, polling, tratamento de falha) | `participante/`, reconexão |
+| Gustavo Macedo Costa | **Experimentos RE2/RE3** + testes em 2 máquinas (RE1) + vídeo plano B | Seção 5, script de concorrência |
 | Caroline Guimarães Campos | **Estudo e slides** (partes 1, 2 e 7), diagrama, `IA.md` | Seção 1, slides |
 
 Todos devem conseguir explicar qualquer parte do código (regra da Seção 9): fazer **revisão cruzada** do código uns dos outros antes do seminário.
