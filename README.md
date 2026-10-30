@@ -1,12 +1,10 @@
 # Leilão Distribuído com REST
 
-Projeto de **Sistemas Distribuídos e Computação Paralela** (PUC-SP, 2º semestre de 2026, Prof. Carlos Paes).
-**Tecnologia sorteada para o Grupo 7: REST / RESTful.**
+Projeto de **Sistemas Distribuídos e Computação Paralela** 
+
+**Tecnologia para o Grupo 7: REST / RESTful.**
 
 **Integrantes:** Caroline Guimarães Campos, Emili Vieira Tabuti, Gustavo Macedo Costa, Isabela Groke Gomes.
-
-> **Situação:** Entrega 1 (roteiro preliminar e primeira comunicação entre dois processos).
-> O que está marcado com [ ] ainda vamos fazer no Laboratório 2 (06/11).
 
 ---
 
