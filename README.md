@@ -14,7 +14,7 @@ Projeto prático de **Sistemas Distribuídos e Computação Paralela** (PUC-SP, 
 
 ### 1.1 O que é REST
 
-REST (*Representational State Transfer*) **não é um protocolo nem uma biblioteca**: é um **estilo arquitetural** definido por Roy Fielding (tese de doutorado, 2000). Na prática, é usado sobre HTTP: o servidor expõe **recursos** identificados por URLs e o cliente os manipula por meio de **representações** (aqui, JSON) trocadas com os **verbos HTTP**.
+REST (*Representational State Transfer*) **não é um protocolo nem uma biblioteca**: é um **estilo arquitetural** definido por Roy Fielding ([tese de doutorado, 2000](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)). Na prática, é usado sobre HTTP: o servidor expõe **recursos** identificados por URLs e o cliente os manipula por meio de **representações** (aqui, JSON) trocadas com os **verbos HTTP**.
 
 No espectro dos paradigmas da disciplina, REST é **Web Service**: comunicação **síncrona**, **direta** (cliente conhece o endereço do servidor) e por **requisição/resposta**.
 
@@ -34,7 +34,7 @@ Pontos de projeto que importam para este trabalho:
 - **Substantivos nas URLs, verbos no método.** `POST /leiloes/1/lances` (e não `/darLance`). Um lance é um *recurso* que passa a existir.
 - **Semântica dos verbos:** `GET` é *seguro* e *idempotente*; `POST` **não** é idempotente (repetir um POST cria outro lance); `PUT`/`DELETE` são idempotentes.
 - **Códigos de status fazem parte do contrato:** `201 Created` (lance aceito), `409 Conflict` (conflito com o estado atual: lance baixo ou leilão encerrado), `404`, `422` (corpo inválido).
-- **Modelo de maturidade de Richardson:** nível 0 (RPC sobre HTTP) → 1 (recursos) → 2 (verbos + status) → 3 (HATEOAS, links na resposta). A POC mira o **nível 2**, que é o que a maioria das APIs "REST" na prática entrega.
+- **[Modelo de maturidade de Richardson](https://martinfowler.com/articles/richardsonMaturityModel.html):** nível 0 (RPC sobre HTTP) → 1 (recursos) → 2 (verbos + status) → 3 (HATEOAS, links na resposta). A POC mira o **nível 2**, que é o que a maioria das APIs "REST" na prática entrega.
 
 ### 1.3 Como REST resolve o cenário do leilão (e sua limitação central)
 
@@ -54,9 +54,9 @@ Esta é a diferença que destacaremos no seminário frente a WebSocket, gRPC (st
 | Stateless → escala horizontalmente atrás de balanceador | Sem contrato formal forte por padrão (OpenAPI resolve parcialmente) |
 | Aproveita infraestrutura HTTP (cache, proxy, TLS, gateways) | "Quem foi primeiro" e concorrência ficam a cargo do servidor |
 
-**Casos de uso reais:** APIs públicas do GitHub, Stripe, Twilio, Google Maps e a maioria das APIs de e-commerce/pagamento. 🔲 *Conferir cada exemplo na documentação oficial antes do seminário (regra de verificação da Seção 9 da especificação).*
+**Casos de uso reais:** APIs públicas do [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api), [Google Maps](https://developers.google.com/maps/documentation) e a maioria das APIs de e-commerce/pagamento. 🔲 *Conferir cada exemplo na documentação oficial antes do seminário (regra de verificação da Seção 9 da especificação).*
 
-**Ferramentas:** FastAPI (escolhido), Flask, Spring Boot, Express; OpenAPI/Swagger; Postman/curl.
+**Ferramentas:** [FastAPI](https://fastapi.tiangolo.com/) (escolhido), Flask, Spring Boot, Express; [OpenAPI](https://spec.openapis.org/oas/latest.html)/Swagger; Postman/curl.
 
 ---
 
@@ -243,7 +243,16 @@ Todos devem conseguir explicar qualquer parte do código (regra da Seção 9): f
 
 Extras opcionais se sobrar tempo: medir latência entre lance e notificação (depende do intervalo de polling), reconexão automática, Docker, interface web.
 
-## 8. Estrutura do repositório
+## 8. Referências
+
+- Fielding, R. T. [*Architectural Styles and the Design of Network-based Software Architectures*](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm) (2000), cap. 5: REST.
+- [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110) (métodos, idempotência, códigos de status).
+- Fowler, M. [Richardson Maturity Model](https://martinfowler.com/articles/richardsonMaturityModel.html).
+- [FastAPI](https://fastapi.tiangolo.com/) e [OpenAPI Specification](https://spec.openapis.org/oas/latest.html).
+- Exemplos de APIs REST: [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api), [Google Maps](https://developers.google.com/maps/documentation).
+- Slides da disciplina (Prof. Carlos Paes); Coulouris et al., *Sistemas Distribuídos: conceitos e projeto*, 5. ed.; Tanenbaum e Van Steen, *Sistemas Distribuídos: princípios e paradigmas*, 2. ed.
+
+## 9. Estrutura do repositório
 
 ```
 leiloeiro/main.py        servidor REST

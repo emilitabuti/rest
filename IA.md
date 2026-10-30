@@ -14,10 +14,10 @@ Rascunho inicial; o grupo deve revisar, completar e conferir cada item.
 
 ## Verificação em fontes oficiais
 
-- 🔲 Princípios de REST: tese de Fielding (2000), cap. 5
-- 🔲 Semântica de verbos e status HTTP: RFC 9110
-- 🔲 Exemplos de empresas (GitHub, Stripe, Twilio): documentação oficial das APIs
-- 🔲 FastAPI: documentação oficial
+- 🔲 Princípios de REST: [tese de Fielding (2000), cap. 5](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
+- 🔲 Semântica de verbos e status HTTP: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)
+- 🔲 Exemplos de empresas: documentação oficial de [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api) e [Twilio](https://www.twilio.com/docs/usage/api)
+- 🔲 FastAPI: [documentação oficial](https://fastapi.tiangolo.com/)
 
 ## Caso em que a IA errou ou sugeriu algo inadequado (obrigatório para o slide)
 
