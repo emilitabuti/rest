@@ -1,5 +1,7 @@
 """Leiloeiro: o servidor REST do leilão (feito com FastAPI)."""
 import argparse
+import json
+import os
 import threading
 from datetime import datetime, timedelta, timezone
 
@@ -20,8 +22,42 @@ _lock = threading.Lock()
 _leilao: dict = {}
 
 # Lista com todos os lances aceitos. O último da lista é sempre o maior.
-# Os dados ficam só na memória: se o servidor cair, tudo se perde.
+# Por padrão os dados ficam só na memória: se o servidor cair, tudo se perde.
 _lances: list[dict] = []
+
+# Se for informado, é o arquivo JSON onde o estado é salvo (veja --arquivo no main()).
+_arquivo: str | None = None
+
+
+def _salvar() -> None:
+    """Grava o leilão e os lances no arquivo (só se o --arquivo foi usado)."""
+    if not _arquivo:
+        return
+    dados = {
+        "item": _leilao["item"],
+        "lance_minimo": _leilao["lance_minimo"],
+        "encerra_em": _leilao["encerra_em"].isoformat(),
+        "lances": _lances,
+    }
+    # Escreve num arquivo temporário e troca depois, pra não corromper se cair no meio
+    with open(_arquivo + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(dados, f)
+    os.replace(_arquivo + ".tmp", _arquivo)
+
+
+def _carregar() -> bool:
+    """Lê o estado salvo. Devolve False se não existe arquivo ainda."""
+    if not _arquivo or not os.path.exists(_arquivo):
+        return False
+    with open(_arquivo, encoding="utf-8") as f:
+        dados = json.load(f)
+    _leilao.update(
+        item=dados["item"],
+        lance_minimo=dados["lance_minimo"],
+        encerra_em=datetime.fromisoformat(dados["encerra_em"]),
+    )
+    _lances.extend(dados["lances"])
+    return True
 
 
 class LanceIn(BaseModel):
@@ -82,7 +118,8 @@ def listar_lances(leilao_id: int, apos: int = 0):
     _checar_id(leilao_id)
     with _lock:
         novos = [l for l in _lances if l["seq"] > apos]
-        return {"lances": novos, "status": _estado()["status"]}
+        # ultimo_seq deixa o cliente perceber se o servidor reiniciou e voltou a contar do zero
+        return {"lances": novos, "ultimo_seq": len(_lances), "status": _estado()["status"]}
 
 
 @app.post("/leiloes/{leilao_id}/lances", status_code=201)
@@ -118,6 +155,7 @@ def dar_lance(leilao_id: int, lance: LanceIn, response: Response):
             "recebido_em": _agora().isoformat(),
         }
         _lances.append(novo)
+        _salvar()  # grava antes de responder, assim um lance aceito não se perde se o servidor cair
 
     # Boa prática do REST: o cabeçalho Location diz onde o recurso novo está
     response.headers["Location"] = f"/leiloes/{leilao_id}/lances/{novo['seq']}"
@@ -132,13 +170,22 @@ def main() -> None:
     p.add_argument("--duracao", type=int, default=120, help="segundos até o encerramento")
     p.add_argument("--host", default="0.0.0.0")  # 0.0.0.0 = aceita conexões de outras máquinas
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument("--arquivo", help="arquivo JSON para salvar o estado e recuperar depois de uma queda")
     a = p.parse_args()
 
-    _leilao.update(
-        item=a.item,
-        lance_minimo=a.minimo,
-        encerra_em=_agora() + timedelta(seconds=a.duracao),
-    )
+    global _arquivo
+    _arquivo = a.arquivo
+
+    # Se já existe um arquivo salvo, o leilão continua de onde parou (ignora --item, --minimo e --duracao)
+    if _carregar():
+        print(f"Estado recuperado de {_arquivo}: {len(_lances)} lance(s)")
+    else:
+        _leilao.update(
+            item=a.item,
+            lance_minimo=a.minimo,
+            encerra_em=_agora() + timedelta(seconds=a.duracao),
+        )
+        _salvar()  # salva já o horário de encerramento, pra ele também sobreviver a uma queda
     uvicorn.run(app, host=a.host, port=a.port)
 
 

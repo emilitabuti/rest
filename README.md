@@ -4,6 +4,8 @@ Projeto de **Sistemas Distribuídos e Computação Paralela**
 
 **Tecnologia para o Grupo 7: REST / RESTful.**
 
+> **Situação:** Entrega 2 (POC completa, experimentos, README e slides em `slides/`).
+
 **Integrantes:** Caroline Guimarães Campos, Emili Vieira Tabuti, Gustavo Macedo Costa, Isabela Groke Gomes.
 
 ---
@@ -83,8 +85,8 @@ flowchart LR
 ```
 
 - **Quem começa a conversa:** sempre o Participante (o cliente). O Leiloeiro nunca fala primeiro.
-- **Leiloeiro** ([leiloeiro/main.py](leiloeiro/main.py)): guarda o leilão e os lances **na memória** e usa um `Lock` para tratar um lance de cada vez.
-- **Participante** ([participante/cliente.py](participante/cliente.py)): programa de terminal com os comandos `consultar`, `lance` e `acompanhar` (polling).
+- **Leiloeiro** ([leiloeiro/main.py](leiloeiro/main.py)): guarda o leilão e os lances **na memória** (ou em um arquivo JSON, se usar `--arquivo`) e usa um `Lock` para tratar um lance de cada vez.
+- **Participante** ([participante/cliente.py](participante/cliente.py)): programa de terminal com os comandos `consultar`, `lance` e `acompanhar` (polling). Se o servidor ficar fora do ar, ele avisa e continua tentando.
 - Linguagem: Python 3.12. Transporte: HTTP. Formato dos dados: JSON.
 
 ### 2.2 Decisões que tomamos (e por quê)
@@ -137,8 +139,10 @@ Se recusado, volta `409 Conflict`:
 
 **Ver lances novos** devolve `200 OK`:
 ```json
-{"lances": [{"seq": 3, "participante": "Ana", "valor": 250.0, "recebido_em": "..."}], "status": "ABERTO"}
+{"lances": [{"seq": 3, "participante": "Ana", "valor": 250.0, "recebido_em": "..."}], "ultimo_seq": 3, "status": "ABERTO"}
 ```
+
+O campo `ultimo_seq` é quantos lances o servidor tem. O cliente usa ele para perceber que o servidor reiniciou e perdeu os lances (veja o RE2).
 
 O FastAPI gera sozinho uma documentação interativa (OpenAPI) em `http://<ip-do-leiloeiro>:8000/docs`.
 
@@ -149,13 +153,13 @@ O FastAPI gera sozinho uma documentação interativa (OpenAPI) em `http://<ip-do
 | RF1: 1 Leiloeiro e 2 ou mais Participantes em processos separados | OK (testamos com 2 processos) | Servidor e cliente rodam em terminais diferentes |
 | RF2: ver o estado do leilão | OK | `GET /leiloes/1` |
 | RF3: dar lance (aceito/recusado) | OK | `POST` com `201` ou `409` |
-| RF4: notificação | Em andamento: o `acompanhar` existe, falta testar com 2 ou mais participantes | Polling com `?apos=` |
+| RF4: notificação | OK (testado com 2 participantes acompanhando, seção 5.3) | Polling com `?apos=` |
 | RF5: encerramento e vencedor | OK | Campo `vencedor` e recusa com `LEILAO_ENCERRADO` |
 | RF6: formato das mensagens | OK | Seção 2.3 |
-| RE1: rodar em 2 máquinas | [ ] Lab 2 | Usar `--url http://IP:8000` |
-| RE2: experimento de falha | [ ] Lab 2 | Seção 5 |
-| RE3: experimento de concorrência | [ ] Lab 2 | Seção 5 |
-| RE4: repositório com README | OK (README ainda vai ser completado) | |
+| RE1: rodar em 2 máquinas | [ ] falta o teste real em 2 máquinas (rodamos só em `localhost`) | Usar `--url http://IP:8000` |
+| RE2: experimento de falha | OK | Seção 5.1 |
+| RE3: experimento de concorrência | OK | Seção 5.2 |
+| RE4: repositório com README | OK | Este README |
 
 ---
 
@@ -200,6 +204,11 @@ python leiloeiro/main.py --item "Notebook usado" --minimo 100 --duracao 120 --po
 ```
 Veja o IP da máquina com `hostname -I`. Se precisar, libere a porta 8000 no firewall.
 
+Para o servidor **não perder os lances se cair**, use `--arquivo`. Ao ligar de novo com o mesmo arquivo, o leilão continua de onde parou (inclusive o horário de encerramento):
+```bash
+python leiloeiro/main.py --arquivo leilao.json
+```
+
 **Máquina B (Participantes, um terminal para cada):**
 ```bash
 python participante/cliente.py --url http://IP_DA_MAQUINA_A:8000 acompanhar
@@ -213,14 +222,74 @@ Também dá para testar sem o cliente, só com o curl:
 
 ---
 
-## 5. Experimentos (Laboratório 2) [ ]
+## 5. Experimentos
 
-**RE2: falha.** Vamos derrubar o Leiloeiro (Ctrl+C) no meio do leilão, ver o que acontece com os participantes e depois ligar de novo.
-O que a gente espera: (a) o `acompanhar` mostra "Leiloeiro indisponível" e continua tentando, ou seja, o cliente aguenta a queda; (b) como os dados ficam **só na memória**, ao reiniciar o leilão **começa do zero e o maior lance se perde**. Ainda precisamos decidir se vamos salvar o estado em um arquivo JSON para não perder.
-Resultado que observamos: _a preencher_.
+Rodamos tudo em uma máquina só (`localhost`), com os scripts da pasta [experimentos/](experimentos/). O teste real em duas máquinas (RE1) ainda precisa ser feito pelo grupo, trocando `localhost` pelo IP (seção 4).
 
-**RE3: concorrência.** Dois participantes dão o mesmo lance ao mesmo tempo (dois `curl` em paralelo ou um script com threads). A gente espera que exatamente um receba `201` e o outro `409`, porque o `Lock` faz um de cada vez. Quem foi primeiro é decidido pelo servidor, não pelo relógio do cliente.
-Resultado que observamos: _a preencher_.
+### 5.1 RE2: o Leiloeiro cai no meio do leilão
+
+O script sobe o servidor, dá dois lances (Ana 150 e Bia 200), deixa um participante acompanhando, derruba o servidor com `kill`, liga de novo e dá um lance de 250:
+
+```bash
+python experimentos/falha.py            # servidor só em memória
+python experimentos/falha.py --salvar   # servidor com --arquivo
+```
+
+| O que aconteceu | Servidor só em memória | Servidor com `--arquivo` |
+|---|---|---|
+| Dar lance com o servidor fora do ar | Erro de conexão (`Connection refused`) | Erro de conexão |
+| Participante acompanhando | Avisa "Leiloeiro indisponível" e continua tentando | Igual |
+| Depois de reiniciar | Leilão **sem lances** e com prazo novo (~60 s). O maior lance **se perdeu** | **Maior lance preservado** (200, Bia) e o prazo continua |
+| Lance de 250 depois da volta | Vira o lance `#1` | Vira o lance `#3` |
+
+**Explicação:** no REST o servidor não guarda "conversa" com o cliente, mas o **estado do leilão** mora no Leiloeiro. Se ele cai e não salvou nada, o leilão se perde. O Leiloeiro é um **ponto único de falha**. Salvando em arquivo, o leilão sobrevive a uma queda. O cliente aguenta a queda sozinho porque o polling é só repetir a pergunta.
+
+**Um bug que o experimento mostrou:** na primeira versão, o participante usava o `seq` do último lance que viu (2) como cursor. Depois do reinício sem persistência, o novo lance era o `#1`, menor que o cursor, então o participante **não via o lance novo** e ficava mudo. Corrigimos com o campo `ultimo_seq`: se o servidor tem menos lances do que o cliente já viu, o cliente avisa e recomeça do zero. Saída depois da correção:
+
+```
+NOVO LANCE #1: 150.0 por Ana
+NOVO LANCE #2: 200.0 por Bia
+Leiloeiro indisponível (ConnectionError); tentando de novo...
+O Leiloeiro reiniciou e perdeu os lances. Começando a acompanhar do zero.
+NOVO LANCE #1: 250.0 por Ana
+```
+
+### 5.2 RE3: dois lances ao mesmo tempo
+
+O script usa threads e uma barreira para soltar 5 lances do mesmo valor no mesmo instante:
+
+```bash
+python experimentos/concorrencia.py --participantes 5 --valor 500
+```
+
+```
+5 participantes deram o lance 500.0 ao mesmo tempo:
+  P1: HTTP 409
+  P2: HTTP 409
+  P3: HTTP 409
+  P4: HTTP 409
+  P5: HTTP 201
+Aceitos: 1 | Recusados: 4
+OK: só um lance foi aceito.
+```
+
+Numa segunda rodada (valor 600), quem ganhou foi o P1. **Sempre só um lance é aceito, mas quem ganha muda de uma rodada para outra.**
+
+**Explicação:** conferir "o valor é maior que o atual?" e gravar o lance acontecem juntos dentro de um `Lock`. Quem pega o lock primeiro é aceito, e os outros já encontram o valor atualizado e recebem `409`. Quem foi "primeiro" é decidido **pela ordem de chegada no servidor**, não pelo relógio do cliente. Isso mostra, na prática, o problema de ordenar eventos em sistemas distribuídos.
+
+### 5.3 RF4: dois participantes acompanhando
+
+Com dois `acompanhar` rodando em terminais diferentes, os dois viram exatamente os mesmos lances e o mesmo vencedor:
+
+```
+--- Participante 1:                       --- Participante 2:
+NOVO LANCE #1: 150.0 por Ana              NOVO LANCE #1: 150.0 por Ana
+NOVO LANCE #2: 200.0 por Bia              NOVO LANCE #2: 200.0 por Bia
+Leilão encerrado.                         Leilão encerrado.
+  VENCEDOR: Bia                             VENCEDOR: Bia
+```
+
+O lance de 180 da Ana foi recusado (`409`), porque o maior já era 200, e por isso ninguém foi notificado dele. Como é polling, cada participante descobre o lance novo só na próxima pergunta, então o atraso máximo é o intervalo (`--intervalo`, padrão 1 s).
 
 ---
 
@@ -228,24 +297,23 @@ Resultado que observamos: _a preencher_.
 
 | Integrante | Responsabilidade principal | Entregas |
 |---|---|---|
-| Emili Vieira Tabuti | **Leiloeiro** (API, regras de lance, encerramento) | `leiloeiro/`, persistência (se decidirmos fazer) |
+| Emili Vieira Tabuti | **Leiloeiro** (API, regras de lance, encerramento) | `leiloeiro/`, persistência (`--arquivo`) |
 | Isabela Groke Gomes | **Participante** (cliente de terminal, polling, tratamento de falha) | `participante/`, reconexão |
 | Gustavo Macedo Costa | **Experimentos RE2 e RE3**, teste em 2 máquinas (RE1) e vídeo de plano B | Seção 5, script de concorrência |
 | Caroline Guimarães Campos | **Estudo e slides** (partes 1, 2 e 7), diagrama e `IA.md` | Seção 1, slides |
 
 Todo mundo precisa saber explicar qualquer parte do código (regra da Seção 9 do enunciado). Por isso vamos **revisar o código uns dos outros** antes do seminário.
 
-## 7. Roteiro até o seminário
+## 7. O que ainda falta antes do seminário (13/11)
 
-| Quando | O que fazer |
-|---|---|
-| Lab 1 (30/10) | Estudo, design, primeira comunicação, repositório e este README (**Entrega 1**) |
-| Lab 2, 0 a 45 min | Testar o RF4 com 2 ou mais participantes, rodar em 2 máquinas (RE1) e decidir sobre salvar o estado |
-| Lab 2, 45 a 60 min | Fazer e anotar o RE2 e o RE3, gravar o vídeo de plano B |
-| Lab 2, 60 a 90 min | Completar o README (seção 5), o `IA.md` e os slides (**Entrega 2**) |
-| 13/11 | Seminário: 10 min de apresentação e 2 min de perguntas, todo mundo apresenta |
+- [ ] Testar em **duas máquinas** (RE1) e anotar o IP e a porta usados.
+- [ ] Gravar um **vídeo curto** da demonstração (plano B).
+- [ ] Abrir cada link das referências e conferir os exemplos de empresas (regra da Seção 9 do enunciado).
+- [ ] Ler o `IA.md` e os slides, e ajustar o que não bater com o que o grupo realmente fez.
+- [ ] **Todo mundo** treinar a explicação de qualquer parte do código (o professor escolhe quem responde).
+- [ ] Combinar quem apresenta cada slide (sugestão nas notas do apresentador dos slides).
 
-Extras, se sobrar tempo: medir o tempo entre o lance e a notificação (depende do intervalo de polling), reconexão automática, Docker e interface web.
+Extras que sobraram: medir o tempo entre o lance e a notificação (depende do intervalo de polling), Docker e interface web.
 
 ## 8. Referências
 
@@ -259,10 +327,14 @@ Extras, se sobrar tempo: medir o tempo entre o lance e a notificação (depende 
 ## 9. Estrutura do repositório
 
 ```
-leiloeiro/main.py        servidor REST
-participante/cliente.py  cliente de terminal
-requirements.txt         dependências
-IA.md                    registro do uso de IA
-README.md                este arquivo
+leiloeiro/main.py            servidor REST
+participante/cliente.py      cliente de terminal
+experimentos/falha.py        experimento RE2 (queda do Leiloeiro)
+experimentos/concorrencia.py experimento RE3 (lances simultâneos)
+slides/leilao_rest.pptx      slides do seminário
+slides/gerar_slides.py       script que gera os slides
+requirements.txt             dependências
+IA.md                        registro do uso de IA
+README.md                    este arquivo
 ```
-Os slides (.pptx ou .pdf) vão ficar na pasta `slides/`.
+Os slides têm notas do apresentador. Para gerar de novo: `pip install -r slides/requirements.txt` e `python slides/gerar_slides.py`.

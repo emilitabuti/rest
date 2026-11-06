@@ -46,6 +46,12 @@ def acompanhar(base: str, intervalo: float) -> None:
             time.sleep(intervalo)
             continue
 
+        if dados["ultimo_seq"] < ultimo:
+            # O servidor tem menos lances do que eu já vi: ele reiniciou sem guardar o estado
+            print("O Leiloeiro reiniciou e perdeu os lances. Começando a acompanhar do zero.")
+            ultimo = 0
+            continue
+
         for l in dados["lances"]:
             print(f"NOVO LANCE #{l['seq']}: {l['valor']} por {l['participante']}")
             ultimo = l["seq"]

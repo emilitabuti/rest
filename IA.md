@@ -16,6 +16,10 @@ Fomos pedindo as coisas por etapas, na ordem em que o trabalho foi andando.
 | 4. Primeira comunicação | Pedimos o código do Leiloeiro e do Participante e um teste com dois processos | Gerou o servidor em FastAPI e o cliente de terminal e rodou os dois para testar | Aproveitado, [ ] falta testar em duas máquinas |
 | 5. Repositório e divisão de tarefas | Pedimos o README com a divisão de tarefas e criamos o repositório no GitHub | Escreveu o README com uma divisão sugerida | Aproveitado |
 | 6. Referências | Percebemos que faltavam os links das referências | Colocou os links no README e no `IA.md` | Aproveitado |
+| 7. Fase 2: deixar o servidor mais completo | Pedimos a implementação completa, o experimento de falha, o README e os slides | Adicionou a opção `--arquivo` no Leiloeiro (salva o estado em JSON) | Aproveitado |
+| 8. Experimentos | Pedimos os experimentos de falha (RE2) e de concorrência (RE3) | Escreveu os scripts da pasta `experimentos/`, rodou e anotou os resultados no README | Aproveitado |
+| 9. Correção do polling | O experimento de falha mostrou que o participante ficava mudo depois que o servidor reiniciava | Achou o problema do cursor `seq` e criou o campo `ultimo_seq` | Aproveitado (veja o caso abaixo) |
+| 10. Slides | Pedimos os slides do seminário seguindo a estrutura do enunciado | Gerou `slides/leilao_rest.pptx` com um script em Python (python-pptx) e notas do apresentador | Aproveitado, [ ] falta o grupo revisar o texto e o visual |
 
 ## O que conferimos na documentação oficial
 
@@ -26,4 +30,10 @@ Fomos pedindo as coisas por etapas, na ordem em que o trabalho foi andando.
 
 ## Um caso em que a IA errou ou sugeriu algo inadequado (obrigatório para o slide)
 
-[ ] _a preencher: contar um caso real que o grupo percebeu e como corrigiu._
+**O erro:** a IA projetou o polling com um cursor: o participante guarda o `seq` do último lance que viu e pergunta só pelos lances com `seq` maior. Ela não pensou no que acontece quando o servidor reinicia sem guardar o estado e volta a contar do `#1`.
+
+**Como percebemos:** no experimento de falha (RE2) sem persistência, o participante que estava acompanhando ficou mudo depois da volta do servidor. O lance novo era o `#1`, menor que o cursor (2), então nunca aparecia.
+
+**Como corrigimos:** o servidor passou a devolver `ultimo_seq` (quantos lances ele tem). Se esse número for menor que o cursor, o cliente avisa que o Leiloeiro reiniciou e recomeça do zero. Rodamos o experimento de novo e o lance novo apareceu.
+
+[ ] _O grupo precisa conferir se entendeu esse caso e conseguir explicar na apresentação._
