@@ -156,7 +156,7 @@ O FastAPI gera sozinho uma documentação interativa (OpenAPI) em `http://<ip-do
 | RF4: notificação | OK (testado com 2 participantes acompanhando, seção 5.3) | Polling com `?apos=` |
 | RF5: encerramento e vencedor | OK | Campo `vencedor` e recusa com `LEILAO_ENCERRADO` |
 | RF6: formato das mensagens | OK | Seção 2.3 |
-| RE1: rodar em 2 máquinas | [ ] falta o teste real em 2 máquinas (rodamos só em `localhost`) | Usar `--url http://IP:8000` |
+| RE1: rodar em 2 máquinas | OK (seção 5.4) | Usar `--url http://IP:8000` |
 | RE2: experimento de falha | OK | Seção 5.1 |
 | RE3: experimento de concorrência | OK | Seção 5.2 |
 | RE4: repositório com README | OK | Este README |
@@ -224,7 +224,7 @@ Também dá para testar sem o cliente, só com o curl:
 
 ## 5. Experimentos
 
-Rodamos tudo em uma máquina só (`localhost`), com os scripts da pasta [experimentos/](experimentos/). O teste real em duas máquinas (RE1) ainda precisa ser feito pelo grupo, trocando `localhost` pelo IP (seção 4).
+Os experimentos RE2 e RE3 foram rodados em uma máquina só (`localhost`), com os scripts da pasta [experimentos/](experimentos/). O teste em duas máquinas (RE1) está na seção 5.4.
 
 ### 5.1 RE2: o Leiloeiro cai no meio do leilão
 
@@ -291,6 +291,16 @@ Leilão encerrado.                         Leilão encerrado.
 
 O lance de 180 da Ana foi recusado (`409`), porque o maior já era 200, e por isso ninguém foi notificado dele. Como é polling, cada participante descobre o lance novo só na próxima pergunta, então o atraso máximo é o intervalo (`--intervalo`, padrão 1 s).
 
+### 5.4 RE1: rodando em duas máquinas
+
+Rodamos o Leiloeiro em uma máquina e os Participantes em outra, na mesma rede, em 06/11/2026.
+
+- **IP usado:** `172.17.15.19`
+- **Porta:** `8000`
+- **Comandos:** os mesmos da seção 4, com `--url http://172.17.15.19:8000` nos Participantes.
+
+Resultado: o lance aceito, o lance recusado e a notificação de novo lance (polling) funcionaram entre as duas máquinas, do mesmo jeito que em `localhost`. Como o servidor escuta em `0.0.0.0`, não foi preciso mudar nada no código para sair de uma máquina para duas.
+
 ---
 
 ## 6. Divisão de tarefas (proposta, o grupo pode ajustar)
@@ -306,7 +316,6 @@ Todo mundo precisa saber explicar qualquer parte do código (regra da Seção 9 
 
 ## 7. O que ainda falta antes do seminário (13/11)
 
-- [ ] Testar em **duas máquinas** (RE1) e anotar o IP e a porta usados.
 - [ ] Gravar um **vídeo curto** da demonstração (plano B).
 - [ ] Abrir cada link das referências e conferir os exemplos de empresas (regra da Seção 9 do enunciado).
 - [ ] Ler o `IA.md` e os slides, e ajustar o que não bater com o que o grupo realmente fez.

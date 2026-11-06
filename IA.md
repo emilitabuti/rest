@@ -13,7 +13,7 @@ Fomos pedindo as coisas por etapas, na ordem em que o trabalho foi andando.
 | 1. Entender o trabalho | Lemos o PDF do enunciado e pedimos ajuda para fazer a Entrega 1 do grupo REST | Identificou o que a Entrega 1 pede: estudo, design, primeira comunicação, divisão de tarefas e repositório | Aproveitado |
 | 2. Estudo da tecnologia | Pedimos um resumo de REST focado em princípios e design, já que todo mundo conhece o uso básico | Explicou as restrições do REST, o problema de não ter push (polling) e vantagens e desvantagens | Aproveitado |
 | 3. Design da POC | Pedimos o desenho da arquitetura e do formato das mensagens | Propôs as URLs (`/leiloes/1`, `/leiloes/1/lances`), os códigos `201` e `409` e o polling com `?apos=` | Aproveitado |
-| 4. Primeira comunicação | Pedimos o código do Leiloeiro e do Participante e um teste com dois processos | Gerou o servidor em FastAPI e o cliente de terminal e rodou os dois para testar | Aproveitado, [ ] falta testar em duas máquinas |
+| 4. Primeira comunicação | Pedimos o código do Leiloeiro e do Participante e um teste com dois processos | Gerou o servidor em FastAPI e o cliente de terminal e rodou os dois para testar | Aproveitado, e o grupo testou em duas máquinas |
 | 5. Repositório e divisão de tarefas | Pedimos o README com a divisão de tarefas e criamos o repositório no GitHub | Escreveu o README com uma divisão sugerida | Aproveitado |
 | 6. Referências | Percebemos que faltavam os links das referências | Colocou os links no README e no `IA.md` | Aproveitado |
 | 7. Fase 2: deixar o servidor mais completo | Pedimos a implementação completa, o experimento de falha, o README e os slides | Adicionou a opção `--arquivo` no Leiloeiro (salva o estado em JSON) | Aproveitado |
