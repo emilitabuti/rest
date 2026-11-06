@@ -59,7 +59,7 @@ Formas de melhorar: pedir só os lances novos (`?apos=seq`, que vamos usar), `ET
 | Sem estado, então é fácil escalar com vários servidores | Quem decide a ordem dos lances e a concorrência é o servidor |
 | Aproveita o que já existe do HTTP (cache, proxy, TLS) | |
 
-**Quem usa:** as APIs públicas do [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api) e [Google Maps](https://developers.google.com/maps/documentation), além de muitas APIs de e-commerce e pagamento. [ ] *Conferir cada exemplo na documentação oficial antes do seminário (regra da Seção 9 do enunciado).*
+**Quem usa:** as APIs públicas do [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api), [Twilio](https://www.twilio.com/docs/usage/api) e [Google Maps](https://developers.google.com/maps/documentation), além de muitas APIs de e-commerce e pagamento. Conferimos os links e os exemplos na documentação oficial de cada API (regra da Seção 9 do enunciado).
 
 **Ferramentas:** [FastAPI](https://fastapi.tiangolo.com/) (a que escolhemos), Flask, Spring Boot, Express, [OpenAPI](https://spec.openapis.org/oas/latest.html)/Swagger, Postman e curl.
 
@@ -299,7 +299,7 @@ Rodamos o Leiloeiro em uma máquina e os Participantes em outra, na mesma rede, 
 - **Porta:** `8000`
 - **Comandos:** os mesmos da seção 4, com `--url http://172.17.15.19:8000` nos Participantes.
 
-Resultado: o lance aceito, o lance recusado e a notificação de novo lance (polling) funcionaram entre as duas máquinas, do mesmo jeito que em `localhost`. Como o servidor escuta em `0.0.0.0`, não foi preciso mudar nada no código para sair de uma máquina para duas.
+Resultado: o lance aceito, o lance recusado e a notificação de novo lance (polling) funcionaram entre as duas máquinas, do mesmo jeito que em `localhost`. Como o servidor escuta em `0.0.0.0`, não foi preciso mudar nada no código para sair de uma máquina para duas. Gravamos um vídeo curto dessa demonstração como plano B para o seminário.
 
 ---
 
@@ -316,8 +316,6 @@ Todo mundo precisa saber explicar qualquer parte do código (regra da Seção 9 
 
 ## 7. O que ainda falta antes do seminário (13/11)
 
-- [ ] Gravar um **vídeo curto** da demonstração (plano B).
-- [ ] Abrir cada link das referências e conferir os exemplos de empresas (regra da Seção 9 do enunciado).
 - [ ] Ler o `IA.md` e os slides, e ajustar o que não bater com o que o grupo realmente fez.
 - [ ] **Todo mundo** treinar a explicação de qualquer parte do código (o professor escolhe quem responde).
 - [ ] Combinar quem apresenta cada slide (sugestão nas notas do apresentador dos slides).

@@ -23,10 +23,10 @@ Fomos pedindo as coisas por etapas, na ordem em que o trabalho foi andando.
 
 ## O que conferimos na documentação oficial
 
-- [ ] Princípios de REST: [tese de Fielding (2000), cap. 5](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
-- [ ] Verbos e códigos de status HTTP: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)
-- [ ] Exemplos de empresas: documentação oficial de [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api) e [Twilio](https://www.twilio.com/docs/usage/api)
-- [ ] FastAPI: [documentação oficial](https://fastapi.tiangolo.com/)
+- [x] Princípios de REST: [tese de Fielding (2000), cap. 5](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
+- [x] Verbos e códigos de status HTTP: [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110)
+- [x] Exemplos de empresas: documentação oficial de [GitHub](https://docs.github.com/en/rest), [Stripe](https://docs.stripe.com/api) e [Twilio](https://www.twilio.com/docs/usage/api)
+- [x] FastAPI: [documentação oficial](https://fastapi.tiangolo.com/)
 
 ## Um caso em que a IA errou ou sugeriu algo inadequado (obrigatório para o slide)
 
